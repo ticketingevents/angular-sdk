@@ -4,6 +4,10 @@ import { Venue } from '../interface/venue.interface';
 import { Event } from '../interface/event.interface';
 import { Section } from '../interface/section.interface';
 import { SectionModel } from '../model/section.model';
+import { Ticket } from '../interface/ticket.interface';
+import { TicketModel } from '../model/ticket.model';
+import { Digest } from '../interface/digest.interface';
+import { DigestModel } from '../model/digest.model';
 
 import * as constants from '../constants';
 
@@ -267,6 +271,128 @@ export class EventModel extends ContentModel implements Event{
         }else{
           resolve(false)
         }
+      })
+    })
+  }
+
+  getTickets(status: string = "", serial: string = "", sections: Array<Section> = [], page: number = 1, results: number = 50): Promise<Array<Ticket>>{
+    return new Promise<Array<Ticket>>((resolve, reject) => {
+      let params = new HttpParams();
+      if(status){
+        params = params.set("status", status)
+      }
+
+      if(serial){
+        params = params.set("serial", serial)
+      }
+
+      let sectionIds = [];
+      for(let section of sections){
+        sectionIds.push(section.self)
+      }
+
+      if(sectionIds.length > 0){
+        params = params.set("sections", sectionIds.join(","))
+      }
+
+      params = params.set("page",page.toString())
+      params = params.set("records",results.toString())
+
+      this._httpClient.get(`${this._self}/tickets`, { observe: 'response', params: params })
+      .pipe(
+        catchError((error: HttpErrorResponse) => {
+          switch(error.status){
+            case 401:
+              reject(constants.UNAUTHORISED_ACCESS);
+              break;
+            default:
+              reject(constants.SERVER_ERROR);
+          }
+
+          return of(new HttpResponse<any>());
+        })
+      )
+      .subscribe(response => {
+        let tickets = Array<Ticket>();
+        if(Array.isArray(response.body.entries)){
+          for(let ticket of response.body.entries){
+            tickets.push(new TicketModel(ticket, this._httpClient))
+          }
+        }
+
+        resolve(tickets);
+      })
+    })
+  }
+
+  countTickets(status: string = "", sections: Array<Section> = []): Promise<number>{
+    return new Promise<number>((resolve, reject) => {
+      let params = new HttpParams();
+      if(status){
+        params = params.set("status", status)
+      }
+
+      let sectionIds = [];
+      for(let section of sections){
+        sectionIds.push(section.self)
+      }
+
+      if(sectionIds.length > 0){
+        params = params.set("sections", sectionIds.join(","))
+      }
+
+      params = params.set("records","0")
+
+      this._httpClient.get(`${this._self}/tickets`, { observe: 'response', params: params })
+      .pipe(
+        catchError((error: HttpErrorResponse) => {
+          switch(error.status){
+            case 401:
+              reject(constants.UNAUTHORISED_ACCESS);
+              break;
+            default:
+              reject(constants.SERVER_ERROR);
+          }
+
+          return of(new HttpResponse<any>());
+        })
+      )
+      .subscribe(response => {
+        resolve(response.body.total);
+      })
+    })
+  }
+
+  getDigest(sections: Array<Section> = []): Promise<Digest>{
+    return new Promise<Digest>((resolve, reject) => {
+      let params = new HttpParams();
+      let sectionIds = [];
+
+      for(let section of sections){
+        sectionIds.push(section.self)
+      }
+
+      if(sectionIds.length > 0){
+        params = params.set("sections", sectionIds.join(","))
+      }
+
+      this._httpClient.get(`${this._self}/tickets/digest`, { observe: 'response', params: params })
+      .pipe(
+        catchError((error: HttpErrorResponse) => {
+          switch(error.status){
+            case 401:
+              reject(constants.UNAUTHORISED_ACCESS);
+              break;
+            default:
+              reject(constants.SERVER_ERROR);
+          }
+
+          return of(new HttpResponse<any>());
+        })
+      )
+      .subscribe(response => {
+        let digest = new DigestModel(response.body)
+        resolve(digest)
       })
     })
   }

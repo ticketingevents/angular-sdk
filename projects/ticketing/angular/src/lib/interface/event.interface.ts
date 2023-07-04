@@ -3,6 +3,8 @@ import { Content } from './content.interface';
 import { Category } from './category.interface';
 import { Venue } from './venue.interface';
 import { Section } from './section.interface';
+import { Ticket } from './ticket.interface';
+import { Digest } from './digest.interface';
 
 export interface Event extends Content{
   type: string
@@ -28,4 +30,7 @@ export interface Event extends Content{
   reload?(): Promise<boolean>;
   submit?(): Promise<boolean>;
   publish?(): Promise<boolean>;
+  getTickets?(status?: string, serial?: string, sections?: Array<Section>, page?: number, results?: number): Promise<Array<Ticket>>;
+  countTickets?(status?: string, sections?: Array<Section>): Promise<number>;
+  getDigest?(sections?: Array<Section>): Promise<Digest>;
 }

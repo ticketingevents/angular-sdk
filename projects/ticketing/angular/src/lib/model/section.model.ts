@@ -2,10 +2,6 @@ import { ContentModel } from '../model/content.model';
 import { Section } from '../interface/section.interface';
 import { Modifier } from '../interface/modifier.interface';
 import { ModifierModel } from '../model/modifier.model';
-import { Ticket } from '../interface/ticket.interface';
-import { TicketModel } from '../model/ticket.model';
-import { Digest } from '../interface/digest.interface';
-import { DigestModel } from '../model/digest.model';
 import * as constants from '../constants';
 
 import { of } from 'rxjs';
@@ -36,99 +32,6 @@ export class SectionModel extends ContentModel implements Section{
         this.modifiers.push(new ModifierModel(modifier, httpClient));
       }
     }
-  }
-
-  getTickets(status: string = "", serial: string = "", page: number = 1, results: number = 50): Promise<Array<Ticket>>{
-    return new Promise<Array<Ticket>>((resolve, reject) => {
-      let params = new HttpParams();
-      if(status){
-        params = params.set("status", status)
-      }
-
-      if(serial){
-        params = params.set("serial", serial)
-      }
-
-      params = params.set("page",page.toString())
-      params = params.set("records",results.toString())
-
-      this._httpClient.get(`${this._self}/tickets`, { observe: 'response', params: params })
-      .pipe(
-        catchError((error: HttpErrorResponse) => {
-          switch(error.status){
-            case 401:
-              reject(constants.UNAUTHORISED_ACCESS);
-              break;
-            default:
-              reject(constants.SERVER_ERROR);
-          }
-
-          return of(new HttpResponse<any>());
-        })
-      )
-      .subscribe(response => {
-        let tickets = Array<Ticket>();
-        if(Array.isArray(response.body.entries)){
-          for(let ticket of response.body.entries){
-            tickets.push(new TicketModel(ticket, this._httpClient))
-          }
-        }
-
-        resolve(tickets);
-      })
-    })
-  }
-
-  countTickets(status: string = ""): Promise<number>{
-    return new Promise<number>((resolve, reject) => {
-      let params = new HttpParams();
-      if(status){
-        params = params.set("status", status)
-      }
-
-      params = params.set("records","0")
-
-      this._httpClient.get(`${this._self}/tickets`, { observe: 'response', params: params })
-      .pipe(
-        catchError((error: HttpErrorResponse) => {
-          switch(error.status){
-            case 401:
-              reject(constants.UNAUTHORISED_ACCESS);
-              break;
-            default:
-              reject(constants.SERVER_ERROR);
-          }
-
-          return of(new HttpResponse<any>());
-        })
-      )
-      .subscribe(response => {
-        resolve(response.body.total);
-      })
-    })
-  }
-
-  getDigest(): Promise<Digest>{
-    return new Promise<Digest>((resolve, reject) => {
-      this._httpClient.get(`${this._self}/tickets/digest`, { observe: 'response' })
-      .pipe(
-        catchError((error: HttpErrorResponse) => {
-          switch(error.status){
-            case 401:
-              reject(constants.UNAUTHORISED_ACCESS);
-              break;
-            default:
-              reject(constants.SERVER_ERROR);
-          }
-
-          return of(new HttpResponse<any>());
-        })
-      )
-      .subscribe(response => {
-        let digest = new DigestModel(response.body)
-        resolve(digest)
-      })
-    })
   }
 
   getCurrentPrice(quantity: number): Promise<{amount: number, availableFor: string, modifier: Modifier}>{
